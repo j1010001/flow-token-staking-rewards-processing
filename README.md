@@ -15,7 +15,7 @@ File with FLOW token historical prices can be downloaded from [coinmarketcap.com
 python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap.csv
 ```
 
-**Example output CSV file:**
+**Example `staking_rewards_exported.csv` output CSV file:**
 
 |Date|Staking Reward|Closing Token Price (CAD)|
 |----|--------------|-------------------------|
