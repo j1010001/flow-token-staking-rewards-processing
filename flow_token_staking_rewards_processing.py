@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 def process_arguments():
     
     # Initialize variables before try block
+    account_address = None
     input_rewards_file = None
     input_prices_file = None
     
