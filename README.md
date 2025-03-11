@@ -1,5 +1,5 @@
 # FLOW token staking rewards processing
-Get staking rewards for an account for the previous year and add token price to each reward date
+**Get staking rewards for an account for the previous year and add token price to each reward date**
 
 The token rewards are downloaded using [get_simple_v1_rewards find API](https://api.find.xyz/swagger/index.html#/Simple/get_simple_v1_rewards)
                         
