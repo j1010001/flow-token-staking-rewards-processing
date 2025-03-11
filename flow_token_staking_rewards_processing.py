@@ -1,4 +1,5 @@
-import json, getopt, sys, csv
+import json, getopt, sys, csv, requests
+from datetime import datetime, timedelta
 
 def process_arguments():
     
@@ -12,10 +13,10 @@ def process_arguments():
 
     # Options. when using getopt, you need to specify whether an option requires a value
     #  by adding a colon (:) after the option letter in the options string.
-    options = "hr:p:"
+    options = "ha:r:p:"
     
     # Long options
-    long_options = ["Help", "Input-rewards=", "Input-prices="]
+    long_options = ["Help", "Account-address=", "Input-rewards=", "Input-prices="]
 
     try:
         # Parsing argument
@@ -38,6 +39,11 @@ def process_arguments():
                        "make sure to select correct currency before downloading the file!\n"
                        "--------------------------------\n"
                        "usage: python process.py -r <rewards_file> -p <prices_file>")   
+
+            elif currentArgument in ("-a", "--Account-address"):
+                #query the data from the API directly
+                account_address = currentValue
+                print("Account address: %s" % currentValue)
                 
             elif currentArgument in ("-r", "--Input-rewards"):
                 input_rewards_file = currentValue
@@ -48,13 +54,78 @@ def process_arguments():
             elif currentArgument in ("-p", "--Input-prices"):
                 input_prices_file = currentValue;
                 print (("CSV input prices file: % s") % currentValue)
+
                 
     except getopt.error as err:
         # output error, and return with an error code
         print (str(err))
 
-    return input_rewards_file, input_prices_file
+    return account_address, input_rewards_file, input_prices_file
 
+
+def fetch_rewards_from_api(account_address):
+    """
+    Fetch rewards data from the Find API for a given account address.
+    Returns the JSON response data.
+    """
+    # Get the current year's date range
+    previous_year = datetime.now().year -1
+    start_date = f"{previous_year}-01-01"
+    end_date = f"{previous_year}-12-31"
+    
+    url = "https://yolo-shy-dew.flow-mainnet.quiknode.pro/262cd027471e9ff80f8de60b5e0adf23524b7352/addon/906/simple/v1/rewards"
+    params = {
+        "from": start_date,
+        "to": end_date,
+        "user": account_address
+    }
+    headers = {
+        "accept": "application/json"
+    }
+    
+    try:
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx, 5xx)
+        #DEBUG
+        print("Request URL:", response.url)  # Add this to debug the final URL
+        print("Response status:", response.status_code)
+        print("response.json():", response.json())
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching rewards data: {e}")
+        sys.exit(1)
+
+def process_rewards_data(rewards_data):
+    """
+    Process the rewards JSON data and return a dictionary of dates and their corresponding staking rewards.
+    If there are multiple staking rewards in a same day (staking for multiple nodes), the rewards are aggregated.
+    """
+    aggregated_rewards = {}
+
+    rewards = rewards_data["delegation_rewards"] #dictionary
+
+    # filtered out only the fields I need
+    filtered_rewards = []
+    for x in rewards:
+        #DEBUG
+        #print(x["timestamp"], " ", x["amount"])
+
+        date = x["timestamp"][:10] #only keep first 10 characters from the timestamp
+        #print(date)
+        filtered_rewards.append(date + str(x["amount"]))
+        
+        if aggregated_rewards.get(date) == None:
+            aggregated_rewards[date] = x["amount"]
+            #print("result:", aggregarted_rewards[x["timestamp"]])
+            #print("result:", aggregarted_rewards[date])
+        else:
+            print("timestamp already found")
+            #print("result current:", aggregarted_rewards[x["timestamp"]])
+            aggregated_rewards[date] = aggregated_rewards[date] + x["amount"]
+            #print("result new:", aggregarted_rewards[x["timestamp"]])
+
+    return aggregated_rewards
+    
 def process_rewards_file(input_rewards_file):
     """
     Process the rewards JSON file and return a dictionary of dates and their corresponding staking rewards.
@@ -64,29 +135,7 @@ def process_rewards_file(input_rewards_file):
     with open(input_rewards_file, 'r') as f:
         data = json.load(f)
             
-        rewards = data["delegation_rewards"] #dictionary
-
-        # filtered out only the fields I need
-        filtered_rewards = []
-        for x in rewards:
-            #DEBUG
-            #print(x["timestamp"], " ", x["amount"])
-
-            date = x["timestamp"][:10] #only keep first 10 characters from the timestamp
-            #print(date)
-            filtered_rewards.append(date + str(x["amount"]))
-            
-            if aggregated_rewards.get(date) == None:
-                aggregated_rewards[date] = x["amount"]
-                #print("result:", aggregarted_rewards[x["timestamp"]])
-                #print("result:", aggregarted_rewards[date])
-            else:
-                print("timestamp already found")
-                #print("result current:", aggregarted_rewards[x["timestamp"]])
-                aggregated_rewards[date] = aggregated_rewards[date] + x["amount"]
-                #print("result new:", aggregarted_rewards[x["timestamp"]])
-
-    return aggregated_rewards
+    return process_rewards_data(data)
 
 def process_prices_file(input_prices_file):
     """
@@ -138,12 +187,20 @@ def merge_rewards_and_prices(aggregated_rewards, prices):
 Main program
 ########################################################
 """
-rewards_file, prices_file = process_arguments()
+account_address, rewards_file, prices_file = process_arguments()
 
-if rewards_file is None:
-    print("Error: No input rewards file specified. Use -i or --Input-rewards to specify the file.")
-    sys.exit(1)
+if account_address is not None:
+    print("Fetching rewards data from the API...")
+    rewards_data = fetch_rewards_from_api(account_address)
+    aggregated_rewards = process_rewards_data(rewards_data)
 else:
+    if rewards_file is None:
+        print("Error: No account address or input rewards file specified."
+        " Use -a or --Account-address to specify account address"
+        "or use -i or --Input-rewards to specify the rewards file.")
+        sys.exit(1)
+    else:
+        print("Reading rewards data from the file: %s" % rewards_file)
     aggregated_rewards = process_rewards_file(rewards_file)
 
 if prices_file is None:
@@ -158,7 +215,10 @@ else:
 print("Merging rewards and prices...")
 merged_data = merge_rewards_and_prices(aggregated_rewards, prices)
 
-#write the data to a file
-#with open('aggregated_rewards.csv','w') as f:
-#    w = csv.writer(f)
-#    w.writerows(aggregated_rewards.items())
+#write the data to a CSV file
+with open('staking_rewards_exported.csv','w') as f:
+    w = csv.writer(f)
+    # Write header row first
+    w.writerow(['Date', 'Staking Reward', 'Closing Token Price'])
+    # Write data rows
+    w.writerows((key, value['reward'], value['price']) for key, value in merged_data.items())
