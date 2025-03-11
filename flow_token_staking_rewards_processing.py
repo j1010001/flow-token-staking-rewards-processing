@@ -203,8 +203,8 @@ else:
         " Use -a or --Account-address to specify account address."
         "or use -i or --Input-rewards to specify the rewards file.")
         sys.exit(1)
-    else:
-        print("Reading rewards data from the file: %s" % rewards_file)
+    
+    print("Reading rewards data from the file: %s" % rewards_file)
     aggregated_rewards = process_rewards_file(rewards_file)
 
 if prices_file is None:
