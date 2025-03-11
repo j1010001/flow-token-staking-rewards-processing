@@ -173,7 +173,10 @@ def merge_rewards_and_prices(aggregated_rewards, prices):
 
     for date in aggregated_rewards.keys():  # Only iterate through dates in aggregated_rewards
         reward = aggregated_rewards[date]
-        price = prices.get(date, 0)  # Default to 0 if no price exists for this date
+        if prices is not None:
+            price = prices.get(date, 0)  # Default to 0 if no price exists for this date
+        else:
+            price = "NA"
         merged_data[date] = {'reward': reward, 'price': price}
 
     # Example of how to access the data:
@@ -196,7 +199,7 @@ if account_address is not None:
 else:
     if rewards_file is None:
         print("Error: No account address or input rewards file specified."
-        " Use -a or --Account-address to specify account address"
+        " Use -a or --Account-address to specify account address."
         "or use -i or --Input-rewards to specify the rewards file.")
         sys.exit(1)
     else:
@@ -208,11 +211,12 @@ if prices_file is None:
           "Use -p or --Input-prices to specify the file."
           "you can get the file from: https://coinmarketcap.com/currencies/flow/historical-data/"
           "make sure to select correct currency before downloading the file!")
+    prices = None
 else:
     prices = process_prices_file(prices_file)
-
-#merge the rewards and prices dictionaries
-print("Merging rewards and prices...")
+    #merge the rewards and prices dictionaries
+    print("Merging rewards and prices...")
+    
 merged_data = merge_rewards_and_prices(aggregated_rewards, prices)
 
 #write the data to a CSV file
