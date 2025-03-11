@@ -88,9 +88,9 @@ def fetch_rewards_from_api(account_address):
         response = requests.get(url, params=params, headers=headers)
         response.raise_for_status()  # Raises an HTTPError for bad responses (4xx, 5xx)
         #DEBUG
-        print("Request URL:", response.url)  # Add this to debug the final URL
-        print("Response status:", response.status_code)
-        print("response.json():", response.json())
+        #print("Request URL:", response.url)  # Add this to debug the final URL
+        #print("Response status:", response.status_code)
+        #print("response.json():", response.json())
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error fetching rewards data: {e}")
@@ -143,8 +143,6 @@ def process_prices_file(input_prices_file):
     Process the prices CSV file and return a dictionary of dates and their corresponding prices, using CLOSE price for the day.
     Returns None if no file is specified.
     """
-    
-    print("Info: Input prices file specified.")
     # create a dictionary of prices
     # csv format: timeOpen;timeClose;timeHigh;timeLow;name;open;high;low;close;volume;marketCap;timestamp
     prices = {}
@@ -180,9 +178,9 @@ def merge_rewards_and_prices(aggregated_rewards, prices):
             price = "NA"
         merged_data[date] = {'reward': reward, 'price': price}
 
-    # Example of how to access the data:
-    for date, data in merged_data.items():
-        print(f"Date: {date}, Reward: {data['reward']}, Price: {data['price']}")
+    # DEBUG
+    #for date, data in merged_data.items():
+    #    print(f"Date: {date}, Reward: {data['reward']}, Price: {data['price']}")
 
     return merged_data
 
