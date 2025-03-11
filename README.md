@@ -2,7 +2,7 @@
 **Get staking rewards for an account for the previous year and add token price to each reward date**
 
 > [!IMPORTANT]  
-> Use at own risk - check the generated report in aligned with your records!
+> Use at own risk - check the generated report is aligned with your records!
 
 The token rewards are downloaded using [get_simple_v1_rewards find API](https://api.find.xyz/swagger/index.html#/Simple/get_simple_v1_rewards)
                         
