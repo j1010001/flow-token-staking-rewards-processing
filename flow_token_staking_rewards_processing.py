@@ -10,6 +10,8 @@ def process_arguments():
     input_prices_file = None
     api_username = None
     api_password = None
+    start_date = None
+    end_date = None
     
     # Remove 1st argument from the
     # list of command line arguments
@@ -17,10 +19,10 @@ def process_arguments():
 
     # Options. when using getopt, you need to specify whether an option requires a value
     #  by adding a colon (:) after the option letter in the options string.
-    options = "ha:r:p:u:w:"
+    options = "ha:r:p:u:w:s:e:"
     
     # Long options
-    long_options = ["Help", "Account-address=", "Input-rewards=", "Input-prices=", "Username=", "Password="]
+    long_options = ["Help", "Account-address=", "Input-rewards=", "Input-prices=", "Username=", "Password=", "Start-date=", "End-date="]
 
     try:
         # Parsing argument
@@ -42,8 +44,10 @@ def process_arguments():
                        "https://coinmarketcap.com/currencies/flow/historical-data/\n"
                        "make sure to select correct currency before downloading the file!\n"
                        "--------------------------------\n"
-                       "usage: python process.py -a <account_address> -u <username> -w <password> -p <prices_file>\n"
-                       "       python process.py -r <rewards_file> -p <prices_file>")   
+                       "usage: python process.py -a <account_address> -u <username> -w <password> -s <start_date> -e <end_date> -p <prices_file>\n"
+                       "       python process.py -r <rewards_file> -p <prices_file>\n"
+                       "Date format: YYYY-MM-DD (e.g., 2024-01-01)\n"
+                       "If dates are not specified, defaults to previous year (YYYY-01-01 to YYYY-12-31)")   
 
             elif currentArgument in ("-a", "--Account-address"):
                 #query the data from the API directly
@@ -65,26 +69,36 @@ def process_arguments():
             elif currentArgument in ("-w", "--Password"):
                 api_password = currentValue
                 print("API password: [hidden]")
+            
+            elif currentArgument in ("-s", "--Start-date"):
+                start_date = currentValue
+                print("Start date: %s" % currentValue)
+            
+            elif currentArgument in ("-e", "--End-date"):
+                end_date = currentValue
+                print("End date: %s" % currentValue)
 
                 
     except getopt.error as err:
         # output error, and return with an error code
         print (str(err))
 
-    return account_address, input_rewards_file, input_prices_file, api_username, api_password
+    return account_address, input_rewards_file, input_prices_file, api_username, api_password, start_date, end_date
 
 
-def fetch_rewards_from_api(account_address, api_username=None, api_password=None):
+def fetch_rewards_from_api(account_address, api_username=None, api_password=None, start_date=None, end_date=None):
     """
     Fetch rewards data from the Find API for a given account address.
     Returns the JSON response data.
     """
-    # Get the current year's date range
-    previous_year = datetime.now().year -1
-    start_date = f"{previous_year}-01-01"
-    end_date = f"{previous_year}-12-31"
+    # Use provided dates or default to previous year
+    if start_date is None or end_date is None:
+        previous_year = datetime.now().year - 1
+        start_date = start_date or f"{previous_year}-01-01"
+        end_date = end_date or f"{previous_year}-12-31"
     
     #this URL is quicknode free API used in the past, switched to direct find.xyz API now
+    # TODO: add support for both Quicknode or find.xyz API endpoints
     #url = "https://yolo-shy-dew.flow-mainnet.quiknode.pro/262cd027471e9ff80f8de60b5e0adf23524b7352/addon/906/simple/v1/rewards"
 
     url = "https://api.find.xyz/simple/v1/rewards"
@@ -208,11 +222,11 @@ def merge_rewards_and_prices(aggregated_rewards, prices):
 Main program
 ########################################################
 """
-account_address, rewards_file, prices_file, api_username, api_password = process_arguments()
+account_address, rewards_file, prices_file, api_username, api_password, start_date, end_date = process_arguments()
 
 if account_address is not None:
     print("Fetching rewards data from the API...")
-    rewards_data = fetch_rewards_from_api(account_address, api_username, api_password)
+    rewards_data = fetch_rewards_from_api(account_address, api_username, api_password, start_date, end_date)
     aggregated_rewards = process_rewards_data(rewards_data)
 else:
     if rewards_file is None:

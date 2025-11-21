@@ -23,10 +23,16 @@ source ./venv/bin/activate
 pip3 install -r requirements.txt
 ```
 5) get & save the token prices file
-6) run:
+
+To downlod the data for previous year, run:
 
 ```
-python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv -u usrname -w 'password'
+python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv -u 'username' -w 'password'
+```
+
+Or to download data for specific date range:
+```
+python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv -u 'username' -w 'password' -s 2025-01-01 -e 2025-11-21
 ```
 
 **Example `staking_rewards_exported.csv` output CSV file:**
