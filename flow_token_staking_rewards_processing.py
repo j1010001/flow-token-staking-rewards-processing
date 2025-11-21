@@ -1,4 +1,5 @@
 import json, getopt, sys, csv, requests
+from requests.auth import HTTPBasicAuth
 from datetime import datetime, timedelta
 
 def process_arguments():
@@ -7,6 +8,8 @@ def process_arguments():
     account_address = None
     input_rewards_file = None
     input_prices_file = None
+    api_username = None
+    api_password = None
     
     # Remove 1st argument from the
     # list of command line arguments
@@ -14,10 +17,10 @@ def process_arguments():
 
     # Options. when using getopt, you need to specify whether an option requires a value
     #  by adding a colon (:) after the option letter in the options string.
-    options = "ha:r:p:"
+    options = "ha:r:p:u:w:"
     
     # Long options
-    long_options = ["Help", "Account-address=", "Input-rewards=", "Input-prices="]
+    long_options = ["Help", "Account-address=", "Input-rewards=", "Input-prices=", "Username=", "Password="]
 
     try:
         # Parsing argument
@@ -39,7 +42,8 @@ def process_arguments():
                        "https://coinmarketcap.com/currencies/flow/historical-data/\n"
                        "make sure to select correct currency before downloading the file!\n"
                        "--------------------------------\n"
-                       "usage: python process.py -r <rewards_file> -p <prices_file>")   
+                       "usage: python process.py -a <account_address> -u <username> -w <password> -p <prices_file>\n"
+                       "       python process.py -r <rewards_file> -p <prices_file>")   
 
             elif currentArgument in ("-a", "--Account-address"):
                 #query the data from the API directly
@@ -48,23 +52,29 @@ def process_arguments():
                 
             elif currentArgument in ("-r", "--Input-rewards"):
                 input_rewards_file = currentValue
-                #print("Debug - Argument:", currentArgument)
-                #print("Debug - Value:", currentValue)
                 print("JSON input rewards file: %s" % currentValue)
                 
             elif currentArgument in ("-p", "--Input-prices"):
                 input_prices_file = currentValue;
                 print (("CSV input prices file: % s") % currentValue)
+            
+            elif currentArgument in ("-u", "--Username"):
+                api_username = currentValue
+                print("API username: %s" % currentValue)
+            
+            elif currentArgument in ("-w", "--Password"):
+                api_password = currentValue
+                print("API password: [hidden]")
 
                 
     except getopt.error as err:
         # output error, and return with an error code
         print (str(err))
 
-    return account_address, input_rewards_file, input_prices_file
+    return account_address, input_rewards_file, input_prices_file, api_username, api_password
 
 
-def fetch_rewards_from_api(account_address):
+def fetch_rewards_from_api(account_address, api_username=None, api_password=None):
     """
     Fetch rewards data from the Find API for a given account address.
     Returns the JSON response data.
@@ -74,7 +84,11 @@ def fetch_rewards_from_api(account_address):
     start_date = f"{previous_year}-01-01"
     end_date = f"{previous_year}-12-31"
     
-    url = "https://yolo-shy-dew.flow-mainnet.quiknode.pro/262cd027471e9ff80f8de60b5e0adf23524b7352/addon/906/simple/v1/rewards"
+    #this URL is quicknode free API used in the past, switched to direct find.xyz API now
+    #url = "https://yolo-shy-dew.flow-mainnet.quiknode.pro/262cd027471e9ff80f8de60b5e0adf23524b7352/addon/906/simple/v1/rewards"
+
+    url = "https://api.find.xyz/simple/v1/rewards"
+    
     params = {
         "from": start_date,
         "to": end_date,
@@ -84,8 +98,13 @@ def fetch_rewards_from_api(account_address):
         "accept": "application/json"
     }
     
+    # Add authentication if credentials are provided
+    auth = None
+    if api_username and api_password:
+        auth = HTTPBasicAuth(api_username, api_password)
+    
     try:
-        response = requests.get(url, params=params, headers=headers)
+        response = requests.get(url, params=params, headers=headers, auth=auth)
         response.raise_for_status()  # Raises an HTTPError for bad responses (4xx, 5xx)
         #DEBUG
         #print("Request URL:", response.url)  # Add this to debug the final URL
@@ -189,11 +208,11 @@ def merge_rewards_and_prices(aggregated_rewards, prices):
 Main program
 ########################################################
 """
-account_address, rewards_file, prices_file = process_arguments()
+account_address, rewards_file, prices_file, api_username, api_password = process_arguments()
 
 if account_address is not None:
     print("Fetching rewards data from the API...")
-    rewards_data = fetch_rewards_from_api(account_address)
+    rewards_data = fetch_rewards_from_api(account_address, api_username, api_password)
     aggregated_rewards = process_rewards_data(rewards_data)
 else:
     if rewards_file is None:
@@ -218,10 +237,16 @@ else:
     
 merged_data = merge_rewards_and_prices(aggregated_rewards, prices)
 
+# Generate filename with current date in YYYYMMDD format
+current_date = datetime.now().strftime('%Y%m%d')
+output_filename = f'{current_date}_staking_rewards_exported_{account_address}.csv'
+
 #write the data to a CSV file
-with open('staking_rewards_exported.csv','w') as f:
+with open(output_filename,'w') as f:
     w = csv.writer(f)
     # Write header row first
     w.writerow(['Date', 'Staking Reward', 'Closing Token Price'])
     # Write data rows
     w.writerows((key, value['reward'], value['price']) for key, value in merged_data.items())
+
+print(f"Data exported to: {output_filename}")
