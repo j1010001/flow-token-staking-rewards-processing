@@ -10,9 +10,20 @@ File with FLOW token historical prices can be downloaded from [coinmarketcap.com
 > make sure to select correct currency before downloading the file.
 
 ## How to use
+> [!NOTE]
+> This program requires python to be installed.
 1) clone repo
-2) get & save the token prices file
-3) run:
+2) Initialize python virtual environment
+```
+python3 -m venv ./venv
+source ./venv/bin/activate
+```
+3) install required packages
+```
+pip3 install -r requirements.txt
+```
+5) get & save the token prices file
+6) run:
 
 ```
 python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv
