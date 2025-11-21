@@ -26,7 +26,7 @@ pip3 install -r requirements.txt
 6) run:
 
 ```
-python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv
+python3 flow_token_staking_rewards_processing.py -a ACCOUNT_NUMBER -p Flow_2024-01-01-2024-12-31_historical_data_coinmarketcap_CAD.csv -u usrname -w 'password'
 ```
 
 **Example `staking_rewards_exported.csv` output CSV file:**
